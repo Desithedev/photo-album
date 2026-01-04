@@ -726,14 +726,49 @@ body {
     background: rgba(0, 0, 0, 0.3);
     border-radius: 16px;
     overflow: hidden;
-    max-height: 70vh;
+    height: 75vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 #viewerImage {
-    width: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
     height: auto;
+    object-fit: contain;
     display: block;
     animation: imageSlide 0.4s ease-out;
+}
+
+.download-image-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 10;
+    opacity: 0;
+}
+
+.viewer-image-container:hover .download-image-btn {
+    opacity: 1;
+}
+
+.download-image-btn:hover {
+    background: var(--primary-gradient);
+    transform: scale(1.1);
 }
 
 .image-info {

@@ -26,6 +26,24 @@ const viewerImage = document.getElementById('viewerImage');
 const imageCounter = document.getElementById('imageCounter');
 const prevBtn = document.getElementById('prevBtn');
 const nextBtn = document.getElementById('nextBtn');
+const downloadCurrentPhotoBtn = document.getElementById('downloadCurrentPhotoBtn');
+
+// Helper to download image
+function downloadImage(url, filename) {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename || 'photo.jpg';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+downloadCurrentPhotoBtn.addEventListener('click', () => {
+    const currentPhoto = photos[currentViewerIndex];
+    if (currentPhoto) {
+        downloadImage(currentPhoto.url, currentPhoto.name);
+    }
+});
 const viewerThumbnails = document.getElementById('viewerThumbnails');
 const categoryFilters = document.getElementById('categoryFilters');
 
