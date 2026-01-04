@@ -1,0 +1,36 @@
+# Ignore node modules and build files
+node_modules/
+dist/
+build/
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ignore backup files
+*-backup.*
+script-*.js
+
+# Keep images folder structure but ignore actual images (too large for git)
+images/**/*.png
+images/**/*.jpg
+images/**/*.jpeg
+images/**/*.gif
+images/**/*.webp
+images/**/*.bmp
+
+# Keep index.json files
+!images/**/index.json
+
+# Keep .gitkeep files
+!images/**/.gitkeep
+
+# Ignore temporary files
+*.tmp
+*.log
