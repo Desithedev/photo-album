@@ -192,6 +192,9 @@ uploadArea.addEventListener('drop', (e) => {
 const saveAlbumBtn = document.getElementById('saveAlbumBtn');
 saveAlbumBtn.addEventListener('click', saveAlbum);
 
+const exportAlbumBtn = document.getElementById('exportAlbumBtn');
+exportAlbumBtn.addEventListener('click', exportAlbum);
+
 clearAllBtn.addEventListener('click', clearAllPhotos);
 viewAlbumBtn.addEventListener('click', openAlbumViewer);
 modalClose.addEventListener('click', closeAlbumViewer);
@@ -219,46 +222,69 @@ function saveAlbum() {
     const albumName = prompt('Đặt tên cho Album của bạn:', `Album ${new Date().toLocaleDateString()}`);
     if (!albumName) return;
 
-    const savedAlbums = JSON.parse(localStorage.getItem('savedAlbums') || '[]');
+    try {
+        const savedAlbums = JSON.parse(localStorage.getItem('savedAlbums') || '[]');
 
-    // Check for duplicate names
-    if (savedAlbums.some(a => a.name === albumName)) {
-        if (!confirm(`Album "${albumName}" đã tồn tại. Bạn có muốn ghi đè không?`)) {
-            return;
-        }
         // Remove old if overwriting
         const index = savedAlbums.findIndex(a => a.name === albumName);
-        savedAlbums.splice(index, 1);
-    }
+        if (index !== -1) {
+            if (!confirm(`Album "${albumName}" đã tồn tại. Bạn có muốn ghi đè không?`)) return;
+            savedAlbums.splice(index, 1);
+        }
 
-    // Prepare data to save (only need essential info to recreate)
-    // Note: We can only robustly save Stock Photos (by ID/URL) and external URLs.
-    // Local uploaded files cannot be saved to localStorage permanently due to size limits.
-    // So we will filter and warn user.
+        const albumData = {
+            name: albumName,
+            date: new Date().toISOString(),
+            count: photos.length,
+            items: photos.map(p => ({
+                isStock: p.isStock || false,
+                stockId: p.stockId,
+                url: p.url,
+                name: p.name,
+                category: p.category
+            }))
+        };
+
+        savedAlbums.push(albumData);
+        localStorage.setItem('savedAlbums', JSON.stringify(savedAlbums));
+        updateSavedAlbumsList();
+        alert('✅ Đã lưu Album thành công vào trình duyệt!');
+    } catch (e) {
+        if (confirm('❌ Lỗi lưu trữ trình duyệt (có thể do quá đầy). Bạn có muốn TẢI VỀ máy không?')) {
+            exportAlbum();
+        }
+        console.error(e);
+    }
+}
+
+function exportAlbum() {
+    if (photos.length === 0) return;
+
+    const albumName = prompt('Đặt tên file để tải về:', `My-Photo-Album-${Date.now()}`);
+    if (!albumName) return;
 
     const albumData = {
         name: albumName,
-        date: new Date().toISOString(),
-        count: photos.length,
+        createdAt: new Date().toISOString(),
+        startSlideshow: true, // Marker to auto-start if possible
         items: photos.map(p => ({
-            isStock: p.isStock || false,
-            stockId: p.stockId,
             url: p.url,
             name: p.name,
             category: p.category
         }))
     };
 
-    savedAlbums.push(albumData);
-    try {
-        localStorage.setItem('savedAlbums', JSON.stringify(savedAlbums));
-        updateSavedAlbumsList();
-        alert('✅ Đã lưu Album thành công!');
-    } catch (e) {
-        alert('❌ Lỗi: Không thể lưu album (Dữ liệu có thể quá lớn). Hãy thử lưu ít ảnh hơn.');
-        console.error(e);
-    }
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(albumData));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", albumName + ".json");
+    document.body.appendChild(downloadAnchorNode); // required for firefox
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
 }
+
+// Add import functionality? Maybe later. For now local users can just save json to keep safe.
+
 
 function updateSavedAlbumsList() {
     const container = document.getElementById('savedAlbumsContainer');
