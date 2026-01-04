@@ -189,6 +189,9 @@ uploadArea.addEventListener('drop', (e) => {
 });
 
 // App Actions
+const saveAlbumBtn = document.getElementById('saveAlbumBtn');
+saveAlbumBtn.addEventListener('click', saveAlbum);
+
 clearAllBtn.addEventListener('click', clearAllPhotos);
 viewAlbumBtn.addEventListener('click', openAlbumViewer);
 modalClose.addEventListener('click', closeAlbumViewer);
@@ -204,6 +207,147 @@ document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') closeAlbumViewer();
     }
 });
+
+// --- Album Management Button Logic ---
+
+function saveAlbum() {
+    if (photos.length === 0) {
+        alert('Album đang trống! Hãy thêm ảnh trước khi lưu.');
+        return;
+    }
+
+    const albumName = prompt('Đặt tên cho Album của bạn:', `Album ${new Date().toLocaleDateString()}`);
+    if (!albumName) return;
+
+    const savedAlbums = JSON.parse(localStorage.getItem('savedAlbums') || '[]');
+
+    // Check for duplicate names
+    if (savedAlbums.some(a => a.name === albumName)) {
+        if (!confirm(`Album "${albumName}" đã tồn tại. Bạn có muốn ghi đè không?`)) {
+            return;
+        }
+        // Remove old if overwriting
+        const index = savedAlbums.findIndex(a => a.name === albumName);
+        savedAlbums.splice(index, 1);
+    }
+
+    // Prepare data to save (only need essential info to recreate)
+    // Note: We can only robustly save Stock Photos (by ID/URL) and external URLs.
+    // Local uploaded files cannot be saved to localStorage permanently due to size limits.
+    // So we will filter and warn user.
+
+    const albumData = {
+        name: albumName,
+        date: new Date().toISOString(),
+        count: photos.length,
+        items: photos.map(p => ({
+            isStock: p.isStock || false,
+            stockId: p.stockId,
+            url: p.url,
+            name: p.name,
+            category: p.category
+        }))
+    };
+
+    savedAlbums.push(albumData);
+    try {
+        localStorage.setItem('savedAlbums', JSON.stringify(savedAlbums));
+        updateSavedAlbumsList();
+        alert('✅ Đã lưu Album thành công!');
+    } catch (e) {
+        alert('❌ Lỗi: Không thể lưu album (Dữ liệu có thể quá lớn). Hãy thử lưu ít ảnh hơn.');
+        console.error(e);
+    }
+}
+
+function updateSavedAlbumsList() {
+    const container = document.getElementById('savedAlbumsContainer');
+    const list = document.getElementById('savedAlbumsList');
+    const savedAlbums = JSON.parse(localStorage.getItem('savedAlbums') || '[]');
+
+    if (savedAlbums.length === 0) {
+        container.style.display = 'none';
+        return;
+    }
+
+    container.style.display = 'block';
+    list.innerHTML = '';
+
+    savedAlbums.forEach(album => {
+        const date = new Date(album.date).toLocaleDateString();
+        const card = document.createElement('div');
+        card.className = 'saved-album-card';
+        card.innerHTML = `
+            <div class="saved-album-name">${album.name}</div>
+            <div class="saved-album-info">
+                <span>📷 ${album.count} ảnh</span> • 
+                <span>📅 ${date}</span>
+            </div>
+            <button class="delete-album-btn" onclick="deleteAlbum('${album.name}', event)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        `;
+
+        card.addEventListener('click', (e) => {
+            if (!e.target.closest('.delete-album-btn')) {
+                loadAlbum(album);
+            }
+        });
+
+        list.appendChild(card);
+    });
+}
+
+function loadAlbum(album) {
+    if (photos.length > 0) {
+        if (!confirm('Bạn có muốn mở album này không? Album hiện tại sẽ bị xóa.')) return;
+    }
+
+    // Clear current
+    photos = [];
+    selectedStockPhotos.clear();
+
+    // Reconstruct photos array
+    album.items.forEach(item => {
+        // If it's a stock photo, make sure we mark it selected
+        if (item.isStock && item.stockId) {
+            selectedStockPhotos.add(item.stockId);
+        }
+
+        photos.push({
+            id: Date.now() + Math.random(),
+            stockId: item.stockId,
+            name: item.name,
+            url: item.url,
+            isStock: item.isStock,
+            category: item.category
+        });
+    });
+
+    renderStockGallery(); // Retrieve stock selection UI
+    updateUI();
+
+    // Scroll to album view
+    document.getElementById('photoCounter').scrollIntoView({ behavior: 'smooth' });
+}
+
+// Global scope for HTML button
+window.deleteAlbum = function (albumName, event) {
+    event.stopPropagation();
+    if (!confirm(`Bạn có chắc muốn xóa album "${albumName}" không?`)) return;
+
+    const savedAlbums = JSON.parse(localStorage.getItem('savedAlbums') || '[]');
+    const newAlbums = savedAlbums.filter(a => a.name !== albumName);
+    localStorage.setItem('savedAlbums', JSON.stringify(newAlbums));
+    updateSavedAlbumsList();
+}
+
+// Initial check
+updateSavedAlbumsList();
+
 
 // Category filtering
 function renderCategoryFilters() {
